@@ -1227,9 +1227,22 @@ export default function NarrativeWorkspace({
           </div>
         )}
         {stageError && (
-          <div className="uyns-banner uyns-banner--error mx-6 mt-4">
-            <AlertTriangle className="w-4 h-4 text-[var(--bad)]" />
-            <span className="flex-1">{stageError}</span>
+          <div className="uyns-banner uyns-banner--error mx-6 mt-4 flex flex-wrap items-center gap-3">
+            <AlertTriangle className="w-4 h-4 text-[var(--bad)] shrink-0" />
+            <span className="flex-1 text-xs">{stageError}</span>
+            {(stageError.includes("GEMINI_API_KEY") ||
+              stageError.includes("CodeCraft") ||
+              stageError.includes("API key")) &&
+              openSettingsFromWorkspace && (
+                <button
+                  type="button"
+                  onClick={openSettingsFromWorkspace}
+                  className="uyns-btn uyns-btn--ghost uyns-btn--sm"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>{isAr ? "فتح الإعدادات" : "Open Settings"}</span>
+                </button>
+              )}
             <button type="button" onClick={() => setStageError(null)} className="text-xs underline">
               {isAr ? "إغلاق" : "Dismiss"}
             </button>

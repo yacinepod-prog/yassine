@@ -17,11 +17,26 @@ let runtimeCodeCraftConfig = {
   ttsVoice: process.env.CODECRAFT_TTS_VOICE || "alloy",
 };
 
+function resolveGeminiEnvKey(): string {
+  const raw =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY ||
+    process.env.VITE_GEMINI_API_KEY ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+    "";
+  const trimmed = String(raw).trim();
+  if (!trimmed || trimmed === "MY_GEMINI_API_KEY" || trimmed === "YOUR_GEMINI_API_KEY") {
+    return "";
+  }
+  return trimmed;
+}
+
 function getAI() {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const apiKey = resolveGeminiEnvKey();
   if (!apiKey) {
     throw new Error(
-      "GEMINI_API_KEY is not configured in server environment. Set GEMINI_API_KEY in Vercel Environment Variables or switch provider to CodeCraft API in Settings."
+      "GEMINI_API_KEY is not configured in server environment. In Vercel Dashboard -> Project Settings -> Environment Variables, add GEMINI_API_KEY (for Production, Preview & Development) and Redeploy, or configure CodeCraft API in Settings."
     );
   }
   return new GoogleGenAI({
@@ -36,13 +51,14 @@ function getAI() {
 
 function getCodeCraftCreds(reqBody: any) {
   const cc = reqBody?.codecraftConfig || {};
-  const apiKey = (
+  const rawKey =
     cc.apiKey ||
     runtimeCodeCraftConfig.apiKey ||
     process.env.CODECRAFT_API_KEY ||
     process.env.OPENAI_API_KEY ||
-    ""
-  ).trim();
+    process.env.VITE_CODECRAFT_API_KEY ||
+    "";
+  const apiKey = String(rawKey).trim();
   const baseUrl = (
     cc.baseUrl ||
     runtimeCodeCraftConfig.baseUrl ||
@@ -58,7 +74,7 @@ function getCodeCraftCreds(reqBody: any) {
 
 function resolveEffectiveProvider(requestedProvider: string | undefined, reqBody: any): "gemini" | "codecraft" {
   const cc = getCodeCraftCreds(reqBody);
-  const hasGemini = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+  const hasGemini = !!resolveGeminiEnvKey();
   const hasCodeCraft = !!cc.apiKey;
   if (requestedProvider === "codecraft") {
     if (hasCodeCraft) return "codecraft";
@@ -187,11 +203,12 @@ app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
     runtime: process.env.VERCEL ? "vercel-serverless" : "node-express",
-    geminiConfigured: !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
+    geminiConfigured: !!resolveGeminiEnvKey(),
     codecraftConfigured: !!(
       runtimeCodeCraftConfig.apiKey ||
       process.env.CODECRAFT_API_KEY ||
-      process.env.OPENAI_API_KEY
+      process.env.OPENAI_API_KEY ||
+      process.env.VITE_CODECRAFT_API_KEY
     ),
     youtubeApiConfigured: !!process.env.YOUTUBE_API_KEY,
   });
@@ -199,18 +216,20 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/providers/status", (_req, res) => {
   res.json({
-    geminiConfigured: !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
+    geminiConfigured: !!resolveGeminiEnvKey(),
     codecraftConfigured: !!(
       runtimeCodeCraftConfig.apiKey ||
       process.env.CODECRAFT_API_KEY ||
-      process.env.OPENAI_API_KEY
+      process.env.OPENAI_API_KEY ||
+      process.env.VITE_CODECRAFT_API_KEY
     ),
     youtubeApiConfigured: !!process.env.YOUTUBE_API_KEY,
     codecraftConfig: {
       hasKey: !!(
         runtimeCodeCraftConfig.apiKey ||
         process.env.CODECRAFT_API_KEY ||
-        process.env.OPENAI_API_KEY
+        process.env.OPENAI_API_KEY ||
+        process.env.VITE_CODECRAFT_API_KEY
       ),
       baseUrl: runtimeCodeCraftConfig.baseUrl,
       textModel: runtimeCodeCraftConfig.textModel,
